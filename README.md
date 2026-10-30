@@ -1,3 +1,7 @@
+![tiny8 header](https://capsule-render.vercel.app/api?type=waving&color=gradient&height=180&section=header&text=tiny8%20v6&fontSize=42&animation=fadeIn)
+
+![Typing](https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=22D3EE&width=650&lines=A+minimal+8-bit+CPU,+built+from+zero.;8-bit+data+path,+16-bit+instruction+words.;v6:+64K+ROM,+64K+RAM,+far+jumps.)
+
 # tiny8 v6 — a minimal 8-bit CPU, built from zero
 
 A tiny accumulator CPU in Verilog: 8-bit data path, 16-bit instruction words,
@@ -198,3 +202,35 @@ the jump; reordering (set B first, then LDI 0) fixed it in both models.
    display/keypad port. The instruction encoding is now full (all 16
    extension slots used), so further instructions would need a prefix
    scheme or a wider instruction word — that is the honest next ceiling.
+
+## 🗺️ Project map
+
+```mermaid
+flowchart TD
+    ASM["tools/asm.py — two-pass assembler (labels, decimal/0x operands)"] --> HEX["programs/*.hex — assembled programs"]
+    HEX --> MOD["tools/model.py — Python behavioural model"]
+    HEX --> VER["src/tiny_cpu.v — the CPU (Verilog)"]
+    VER --> TB["sim/tb_cpu.v + tb_v2..v6 + tb_guess.v — PASS/FAIL testbenches"]
+    MOD --> CHK["model and Verilog agree on every program"]
+    VER --> TT["src/tt_tiny8.v — TinyTapeout wrapper (compiles, not a submission)"]
+    PROG["programs/*.asm — sum1to10, guess, fib, call_demo, multiply, push_pop, regb_demo, guess255, mul_demo, cmp_flags, page_demo, far_demo, far_cond"] --> ASM
+    GAME["tools/play_guess.py — console driver for the guess game"] --> MOD
+```
+
+## 📊 At a glance (facts checked against the repo 30 Oct 2026; program results as recorded in the README, 25 Oct 2026)
+
+| Measure | Value |
+|---|---|
+| What | A minimal 8-bit accumulator CPU in Verilog, built from zero — v6 |
+| Data path | 8-bit data, 16-bit instruction words: [15:12] opcode, [11:8] extension, [7:0] operand |
+| Memory | Harvard: 256-word ROM (v1–v5) → 64K-word ROM in v6; 256-byte RAM → 64KB RAM in v5 (B is the page register) |
+| Timing | Multi-cycle: every instruction takes FETCH + EXECUTE (2 clocks) |
+| Flags | Z (set by ALU/load results only); C carry/borrow (v4, set by ADD/ADDI/ADDB carry and SUB/SUBB/CMP borrow) |
+| Ports | Memory-mapped: read 0xFE = input pins, write 0xFF = output pins |
+| Registers | A accumulator, B second register (v3), 16-bit PC (v6), SP resets to 0xFE, stack grows down from top of RAM |
+| ISA | 16 base opcodes (NOP, LDI, LDA, STA, ADD, ADDI, SUB, AND, OR, XOR, NOT, SHL, SHR, JMP, JZ, HLT) + 15 extensions in the [11:8] field (JNZ, CALL, RET, TAB, TBA, ADDB, SUBB, PUSH, POP, CMP, JC, JNC, MUL, LDAX, STAX) + v6 far jumps JMPF/JZF |
+| Backwards compatibility | Every version runs all earlier programs unchanged, with identical step counts (v1–v5 on v6) |
+| Demos | sum 1..10 = 55 (86 instructions / 173 cycles); fib(10) = 55; 6 x 7 = 42; 15 x 15 = 225 in one MUL; guess game (1..100 and 0..255); far call to address 256 |
+| Files | 41: src/tiny_cpu.v, src/tt_tiny8.v, sim/tb_cpu.v + tb_v2..v6 + tb_guess.v, tools/asm.py, tools/model.py, tools/play_guess.py, run.sh, 13 programs with .asm + .hex, EXPLAINED_FOR_BEGINNERS.md |
+| Run it | ./run.sh — assembles, runs the Python model, compiles + simulates the Verilog |
+| Honest limits | No gate count claimed yet (Yosys not installed in the VM); TinyTapeout wrapper compiles and elaborates with Icarus Verilog but is not a submission; the 64KB arrays would need SRAM macros for a real chip; all 16 extension slots are now used, so further instructions need a prefix scheme or a wider word |
